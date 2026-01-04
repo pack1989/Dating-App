@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign up | Nigeria Dating</title>
+    <meta name="description" content="Create your Nigeria Dating profile." />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body data-page="signup">
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <strong>Nigeria Dating</strong>
+      </a>
+      <nav class="nav">
+        <a data-nav="people" href="people.html">People</a>
+        <a data-nav="signin" href="signin.html">Sign in</a>
+        <a class="button primary" href="signup.html">Start matching</a>
+      </nav>
+    </header>
+    <main>
+      <h1 class="page-title">Create your account</h1>
+      <p class="page-intro">
+        Static demo mode is enabled for GitHub Pages.
+      </p>
+      <div class="card">
+        <form class="form" data-signup-form>
+          <div class="form-row">
+            <label for="firstName">First name</label>
+            <input id="firstName" name="firstName" required />
+          </div>
+          <div class="form-row">
+            <label for="lastName">Last name</label>
+            <input id="lastName" name="lastName" required />
+          </div>
+          <div class="form-row">
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" placeholder="+234..." />
+          </div>
+          <div class="form-row">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required />
+          </div>
+          <div class="form-row">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required />
+          </div>
+          <div class="form-row">
+            <label for="profilePhotoUrl">Profile photo URL</label>
+            <input
+              id="profilePhotoUrl"
+              name="profilePhotoUrl"
+              type="url"
+              placeholder="https://..."
+            />
+          </div>
+          <p class="form-note">
+            Upload support will be added after storage is configured.
+          </p>
+          <p class="form-note" data-signup-note>
+            Signup is disabled in this static build.
+          </p>
+          <button class="button primary" type="submit">
+            Create account
+          </button>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>
