@@ -1,0 +1,52 @@
+﻿:root {
+  --bg: #f9f4ef;
+  --ink: #0b0b0b;
+  --accent: #0f766e;
+  --muted: #e9dfd1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Georgia", "Times New Roman", serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 20px;
+  border-bottom: 1px solid var(--muted);
+}
+
+nav a {
+  margin-left: 16px;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--muted);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
