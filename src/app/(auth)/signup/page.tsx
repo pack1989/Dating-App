@@ -23,6 +23,7 @@ const initialState: FormState = {
 
 export default function SignUpPage() {
   const router = useRouter();
+  const isStaticExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === "true";
   const [form, setForm] = useState<FormState>(initialState);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -39,6 +40,11 @@ export default function SignUpPage() {
     setSubmitting(true);
 
     try {
+      if (isStaticExport) {
+        setError("Signup is disabled in the static demo.");
+        return;
+      }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -132,6 +138,11 @@ export default function SignUpPage() {
           <p className="form-note">
             Upload support will be added after storage is configured.
           </p>
+          {isStaticExport ? (
+            <p className="form-note">
+              Static demo mode is enabled. Signup is disabled.
+            </p>
+          ) : null}
           {error ? <p className="form-error">{error}</p> : null}
           <button className="button" type="submit" disabled={submitting}>
             {submitting ? "Creating account..." : "Create account"}
