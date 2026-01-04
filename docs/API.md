@@ -2,9 +2,11 @@
 
 POST /api/auth/register
 - Create account with email and password
+- Body: firstName, lastName, phone?, email, password, profilePhotoUrl?
 
 POST /api/auth/login
 - Login and create session
+- Body: email, password
 
 GET /api/profile
 - Get current user profile

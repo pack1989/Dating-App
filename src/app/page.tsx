@@ -5,7 +5,6 @@
         <strong>Nigeria Dating</strong>
         <nav>
           <a href="/signup">Sign up</a>
-          <a href="/signin">Sign in</a>
           <a href="/people">People</a>
         </nav>
       </header>

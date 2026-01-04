@@ -1,5 +1,6 @@
-﻿export async function POST() {
-  return new Response(JSON.stringify({ ok: true }), {
-    headers: { "content-type": "application/json" }
-  });
+export async function POST(request: Request) {
+  return Response.json(
+    { error: "Sign in is disabled during development." },
+    { status: 403 }
+  );
 }
