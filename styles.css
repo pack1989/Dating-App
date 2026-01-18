@@ -95,6 +95,24 @@ main {
   padding: 32px 0 12px;
 }
 
+.hero-split {
+  grid-template-columns: minmax(280px, 1.1fr) minmax(280px, 0.9fr);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 45, 45, 0.45);
+  color: var(--text);
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  background: rgba(255, 45, 45, 0.15);
+}
+
 .hero-content {
   display: grid;
   gap: 20px;
@@ -131,6 +149,27 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
+}
+
+.trust-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(10, 10, 10, 0.8);
+}
+
+.trust-number {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.trust-label {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .button {
@@ -217,6 +256,144 @@ main {
 
 .panel-card p {
   margin: 0;
+  color: var(--muted);
+}
+
+.hero-phone {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+.phone-shell {
+  width: min(360px, 90vw);
+  aspect-ratio: 9 / 16;
+  border-radius: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(160deg, #161616, #0b0b0b);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  padding: 18px;
+  position: relative;
+  display: grid;
+  align-items: center;
+}
+
+.phone-notch {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.swipe-stack {
+  position: relative;
+  height: 100%;
+}
+
+.swipe-card {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  padding: 24px;
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 45, 45, 0.25),
+      transparent 50%
+    ),
+    #101010;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 12px;
+}
+
+.swipe-card.top {
+  transform: translateY(-6px) rotate(-1deg);
+  z-index: 3;
+}
+
+.swipe-card.middle {
+  transform: translateY(10px) rotate(1deg) scale(0.97);
+  opacity: 0.7;
+  z-index: 2;
+}
+
+.swipe-card.back {
+  transform: translateY(24px) rotate(2deg) scale(0.94);
+  opacity: 0.5;
+  z-index: 1;
+}
+
+.card-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #34d399;
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.5);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+}
+
+.swipe-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 12px;
+}
+
+.circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.circle.primary {
+  background: linear-gradient(135deg, var(--red), var(--red-dark));
+  border: none;
+}
+
+.circle.ghost {
+  background: rgba(10, 10, 10, 0.6);
+}
+
+.floating-badge {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 15, 15, 0.85);
+  font-size: 0.85rem;
   color: var(--muted);
 }
 
@@ -369,5 +546,9 @@ input:focus {
 
   .hero {
     padding-top: 16px;
+  }
+
+  .hero-split {
+    grid-template-columns: 1fr;
   }
 }
