@@ -9,26 +9,34 @@
     <script defer src="app.js"></script>
   </head>
   <body data-page="signin">
-    <header class="site-header">
-      <a class="brand" href="index.html">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <strong>Nigeria Dating</strong>
-      </a>
-      <nav class="nav">
-        <a data-nav="people" href="people.html">People</a>
-        <a data-nav="signin" href="signin.html">Sign in</a>
-        <a class="button primary" href="signup.html">Start matching</a>
-      </nav>
-    </header>
-    <main>
-      <h1 class="page-title">Sign in disabled</h1>
-      <p class="page-intro">We are still building secure login flows.</p>
-      <div class="card">
-        <p>Use the sign up flow or go directly to People.</p>
-        <div>
-          <a class="button primary" href="signup.html">Go to sign up</a>
+    <main class="centered-main">
+      <form class="card form" action="#" method="post" data-signin-form>
+        <div class="form-row">
+          <label for="signin-username">Username</label>
+          <input
+            id="signin-username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            required
+          />
         </div>
-      </div>
+        <div class="form-row">
+          <label for="signin-password">Password</label>
+          <input
+            id="signin-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+        <div class="form-links">
+          <a class="text-link" href="forgot-password.html">Forgot password</a>
+          <a class="text-link" href="signup.html">Create account</a>
+        </div>
+        <button class="button primary" type="submit">Login</button>
+      </form>
     </main>
   </body>
 </html>

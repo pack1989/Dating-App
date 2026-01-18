@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create profile | Nigeria Dating</title>
+    <meta name="description" content="Create your Nigeria Dating profile." />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body data-page="create-profile">
+    <main class="centered-main">
+      <form class="card form" action="#" method="post" data-create-profile-form>
+        <h1 class="page-title">Create profile</h1>
+        <div class="form-row">
+          <label for="profile-name">Display name</label>
+          <input id="profile-name" name="profileName" required />
+        </div>
+        <div class="form-row">
+          <label for="profile-location">Location</label>
+          <input
+            id="profile-location"
+            name="location"
+            data-location-field
+            readonly
+            required
+          />
+          <p class="form-note">Auto-filled from your device.</p>
+        </div>
+        <div class="form-row">
+          <label for="profile-bio">Bio</label>
+          <input id="profile-bio" name="bio" required />
+        </div>
+        <div class="form-row">
+          <label for="profile-photo">Profile photos (up to 5)</label>
+          <input
+            id="profile-photo"
+            name="profilePhotos"
+            type="file"
+            accept="image/*"
+            multiple
+            data-profile-photo-input
+            required
+          />
+          <p class="form-note">Pick up to 5 photos. Choose one as profile.</p>
+        </div>
+        <div class="photo-preview" data-photo-previews></div>
+        <input type="hidden" name="primaryPhotoIndex" data-primary-photo />
+        <button class="button primary" type="submit">Save profile</button>
+      </form>
+    </main>
+  </body>
+</html>
