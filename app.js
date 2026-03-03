@@ -61,13 +61,15 @@ const LOCAL_USERS_KEY = "localTestUsers";
 const LOCAL_PROFILES_KEY = "localTestProfiles";
 const LOCAL_LIKES_KEY = "localProfileLikes";
 const LOCAL_LIKE_SEEN_KEY = "localLikeSeenByUser";
+const LOCAL_PROFILE_VIEWS_KEY = "localProfileViews";
+const LOCAL_VIEW_SEEN_KEY = "localViewSeenByUser";
 const LOCAL_CHAT_THREADS_KEY = "localChatThreads";
 const LOCAL_CHAT_MESSAGES_KEY = "localChatMessages";
 const LOCAL_MESSAGE_SEEN_KEY = "localMessageSeenByUser";
 const LOCAL_DASH_FILTERS_KEY = "localDashboardFilters";
 const SEEDED_TEST_EMAIL = "test@example.com";
 const SEEDED_TEST_PASSWORD = "Test1234";
-const SEEDED_SAMPLE_PROFILES = [
+const SEEDED_SAMPLE_BASE = [
   {
     email: "amina@example.com",
     profileName: "Amina Yusuf",
@@ -76,8 +78,7 @@ const SEEDED_SAMPLE_PROFILES = [
     religion: "muslim",
     tribe: "hausa-fulani",
     languages: ["english", "hausa"],
-    lookingFor: ["long-term", "marriage"],
-    avatarColor: "#b91c1c"
+    lookingFor: ["long-term", "marriage"]
   },
   {
     email: "chioma@example.com",
@@ -87,8 +88,7 @@ const SEEDED_SAMPLE_PROFILES = [
     religion: "christian",
     tribe: "igbo",
     languages: ["english", "igbo"],
-    lookingFor: ["dating", "long-term"],
-    avatarColor: "#1d4ed8"
+    lookingFor: ["dating", "long-term"]
   },
   {
     email: "tunde@example.com",
@@ -98,9 +98,138 @@ const SEEDED_SAMPLE_PROFILES = [
     religion: "christian",
     tribe: "yoruba",
     languages: ["english", "yoruba"],
-    lookingFor: ["dating"],
-    avatarColor: "#0f766e"
+    lookingFor: ["dating"]
   }
+];
+
+const SEEDED_AVATAR_COLORS = [
+  "#b91c1c",
+  "#1d4ed8",
+  "#0f766e",
+  "#92400e",
+  "#7c3aed",
+  "#be123c",
+  "#0369a1",
+  "#166534",
+  "#4f46e5",
+  "#9f1239"
+];
+
+const toSeedEmail = (name, index) =>
+  `${String(name || "member")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "")}.${index + 1}@example.com`;
+
+const SEEDED_TARGET_DASHBOARD_PROFILE_COUNT = 100;
+const SEEDED_FIRST_NAMES = [
+  "Zainab",
+  "Fatima",
+  "Mariam",
+  "Hauwa",
+  "Aisha",
+  "Blessing",
+  "Ifeoma",
+  "Ngozi",
+  "Adaobi",
+  "Kemi",
+  "Sade",
+  "Tola",
+  "Bisi",
+  "Ebi",
+  "Uduak",
+  "Anita",
+  "Ruth",
+  "Deborah",
+  "Grace",
+  "Uchechi"
+];
+const SEEDED_LAST_NAMES = [
+  "Bello",
+  "Lawal",
+  "Sani",
+  "Garba",
+  "Abubakar",
+  "Eze",
+  "Nwosu",
+  "Umeh",
+  "Chukwu",
+  "Afolabi",
+  "Ogunleye",
+  "Akinola",
+  "Fashola",
+  "Tari",
+  "Essien",
+  "Orok",
+  "Gyang",
+  "Danjuma",
+  "Idoko",
+  "Nnamani"
+];
+const SEEDED_LOCATIONS = [
+  "Lagos",
+  "Abuja",
+  "Kano",
+  "Ibadan",
+  "Enugu",
+  "Port Harcourt",
+  "Kaduna",
+  "Abeokuta",
+  "Uyo",
+  "Calabar"
+];
+const SEEDED_RELIGIONS = ["christian", "muslim"];
+const SEEDED_TRIBES = ["yoruba", "igbo", "hausa-fulani", "ijaw", "ibibio", "tiv"];
+const SEEDED_LANGUAGE_SETS = [
+  ["english", "yoruba"],
+  ["english", "igbo"],
+  ["english", "hausa"],
+  ["english", "nigerian-pidgin"],
+  ["english", "ibibio"]
+];
+const SEEDED_LOOKING_FOR = [
+  ["dating"],
+  ["long-term"],
+  ["marriage"],
+  ["dating", "long-term"],
+  ["long-term", "marriage"]
+];
+
+const buildGeneratedSeedProfiles = (count, startIndex = 0) => {
+  const generated = [];
+  for (let i = 0; i < count; i += 1) {
+    const seq = startIndex + i;
+    const firstName = SEEDED_FIRST_NAMES[seq % SEEDED_FIRST_NAMES.length];
+    const lastName = SEEDED_LAST_NAMES[Math.floor(seq / SEEDED_FIRST_NAMES.length) % SEEDED_LAST_NAMES.length];
+    const profileName = `${firstName} ${lastName}`;
+    generated.push({
+      email: toSeedEmail(profileName, seq),
+      profileName,
+      location: SEEDED_LOCATIONS[seq % SEEDED_LOCATIONS.length],
+      gender: "female",
+      religion: SEEDED_RELIGIONS[seq % SEEDED_RELIGIONS.length],
+      tribe: SEEDED_TRIBES[seq % SEEDED_TRIBES.length],
+      languages: SEEDED_LANGUAGE_SETS[seq % SEEDED_LANGUAGE_SETS.length],
+      lookingFor: SEEDED_LOOKING_FOR[seq % SEEDED_LOOKING_FOR.length],
+      avatarColor: SEEDED_AVATAR_COLORS[seq % SEEDED_AVATAR_COLORS.length]
+    });
+  }
+  return generated;
+};
+
+const SEEDED_SAMPLE_PROFILES = [
+  ...SEEDED_SAMPLE_BASE.map((entry, index) => ({
+    ...entry,
+    avatarColor: SEEDED_AVATAR_COLORS[index % SEEDED_AVATAR_COLORS.length]
+  })),
+  ...buildGeneratedSeedProfiles(
+    Math.max(
+      0,
+      SEEDED_TARGET_DASHBOARD_PROFILE_COUNT -
+        SEEDED_SAMPLE_BASE.filter((entry) => entry.gender === "female").length
+    ),
+    SEEDED_SAMPLE_BASE.length
+  )
 ];
 
 const readLocalUsers = () => {
@@ -129,8 +258,28 @@ const readLocalProfiles = () => {
   }
 };
 
+const isStorageQuotaError = (error) => {
+  if (!error) {
+    return false;
+  }
+  return (
+    error.name === "QuotaExceededError" ||
+    error.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+    error.code === 22 ||
+    error.code === 1014
+  );
+};
+
 const writeLocalProfiles = (profiles) => {
-  localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
+  try {
+    localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
+    return true;
+  } catch (error) {
+    if (isStorageQuotaError(error)) {
+      return false;
+    }
+    throw error;
+  }
 };
 
 const readLocalLikes = () => {
@@ -161,6 +310,36 @@ const readLikeSeen = () => {
 
 const writeLikeSeen = (seenMap) => {
   localStorage.setItem(LOCAL_LIKE_SEEN_KEY, JSON.stringify(seenMap));
+};
+
+const readLocalViews = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_PROFILE_VIEWS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+const writeLocalViews = (views) => {
+  localStorage.setItem(LOCAL_PROFILE_VIEWS_KEY, JSON.stringify(views));
+};
+
+const readViewSeen = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_VIEW_SEEN_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+};
+
+const writeViewSeen = (seenMap) => {
+  localStorage.setItem(LOCAL_VIEW_SEEN_KEY, JSON.stringify(seenMap));
 };
 
 const readLocalChatThreads = () => {
@@ -223,13 +402,78 @@ const writeDashboardFilters = (filters) => {
   localStorage.setItem(LOCAL_DASH_FILTERS_KEY, JSON.stringify(filters));
 };
 
-const fileToDataUrl = (file) =>
+const readFileAsDataUrl = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
     reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsDataURL(file);
   });
+
+const fileToDataUrl = async (file) => {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    return readFileAsDataUrl(file);
+  }
+  try {
+    const imageUrl = URL.createObjectURL(file);
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = imageUrl;
+    });
+    const maxDimension = 900;
+    const width = image.naturalWidth || image.width || maxDimension;
+    const height = image.naturalHeight || image.height || maxDimension;
+    const scale = Math.min(1, maxDimension / Math.max(width, height));
+    const targetWidth = Math.max(1, Math.round(width * scale));
+    const targetHeight = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      URL.revokeObjectURL(imageUrl);
+      return readFileAsDataUrl(file);
+    }
+    context.drawImage(image, 0, 0, targetWidth, targetHeight);
+    const compressed = canvas.toDataURL("image/jpeg", 0.72);
+    URL.revokeObjectURL(imageUrl);
+    return compressed;
+  } catch (error) {
+    return readFileAsDataUrl(file);
+  }
+};
+
+const compressDataUrlImage = async (source, maxDimension = 700, quality = 0.62) => {
+  if (!source || !String(source).startsWith("data:image/")) {
+    return source;
+  }
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Failed to load data url image"));
+      img.src = source;
+    });
+    const width = image.naturalWidth || image.width || maxDimension;
+    const height = image.naturalHeight || image.height || maxDimension;
+    const scale = Math.min(1, maxDimension / Math.max(width, height));
+    const targetWidth = Math.max(1, Math.round(width * scale));
+    const targetHeight = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return source;
+    }
+    context.drawImage(image, 0, 0, targetWidth, targetHeight);
+    return canvas.toDataURL("image/jpeg", quality);
+  } catch (error) {
+    return source;
+  }
+};
 
 const createAvatarDataUrl = (name, background) => {
   const label = (name || "M").trim().charAt(0).toUpperCase() || "M";
@@ -333,6 +577,7 @@ seedHardcodedLocalTestUser();
 
 let createProfileExistingPhotos = [];
 let createProfileExistingPrimaryIndex = 0;
+let createProfilePhotoItems = [];
 
 const toAuthMessage = (error, fallback) => {
   const code = error && error.code ? error.code : "";
@@ -557,6 +802,9 @@ if (createProfileForm) {
   const lookingForInputs = createProfileForm.querySelector(
     "[data-looking-for-hidden-inputs]"
   );
+  const createProfilePhotoInput = createProfileForm.querySelector(
+    "[data-profile-photo-input]"
+  );
   const lookingForError = createProfileForm.querySelector("[data-looking-for-error]");
   const languageSelections = new Map();
   const lookingForSelections = new Map();
@@ -742,99 +990,152 @@ if (createProfileForm) {
     createProfileExistingPrimaryIndex = Number.isInteger(existingProfile.primaryPhotoIndex)
       ? existingProfile.primaryPhotoIndex
       : 0;
+    createProfilePhotoItems = createProfileExistingPhotos.map((src) => ({
+      src,
+      isExisting: true
+    }));
+    if (createProfilePhotoInput) {
+      createProfilePhotoInput.required = createProfileExistingPhotos.length === 0;
+    }
 
     renderLanguageSelections();
     renderLookingForSelections();
   } else {
     createProfileExistingPhotos = [];
     createProfileExistingPrimaryIndex = 0;
+    createProfilePhotoItems = [];
+    if (createProfilePhotoInput) {
+      createProfilePhotoInput.required = true;
+    }
   }
 
   createProfileForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const hasLanguage = languageSelections.size > 0;
-    const hasLookingFor = lookingForSelections.size > 0;
-    if (languageError) {
-      languageError.hidden = hasLanguage;
-    }
-    if (!hasLanguage) {
+    try {
+      const hasLanguage = languageSelections.size > 0;
+      const hasLookingFor = lookingForSelections.size > 0;
       if (languageError) {
-        languageError.hidden = false;
+        languageError.hidden = hasLanguage;
       }
-      return;
-    }
-    if (lookingForError) {
-      lookingForError.hidden = hasLookingFor;
-    }
-    if (!hasLookingFor) {
-      if (lookingForError) {
-        lookingForError.hidden = false;
-      }
-      return;
-    }
-
-    const fileInput = createProfileForm.querySelector(
-      "[data-profile-photo-input]"
-    );
-    const primaryInput = createProfileForm.querySelector("[data-primary-photo]");
-    if (fileInput && primaryInput) {
-      const files = fileInput.files ? Array.from(fileInput.files) : [];
-      const profileKey = currentUserEmail || `local-anon-${Date.now()}`;
-      const formData = new FormData(createProfileForm);
-      let photos = createProfileExistingPhotos.slice();
-      if (files.length) {
-        photos = await Promise.all(files.map((file) => fileToDataUrl(file)));
-      }
-      if (!photos.length) {
-        alert("Please add at least one photo.");
+      if (!hasLanguage) {
+        if (languageError) {
+          languageError.hidden = false;
+        }
         return;
       }
-      if (primaryInput.value === "") {
-        primaryInput.value = String(
-          Math.min(createProfileExistingPrimaryIndex, photos.length - 1)
-        );
+      if (lookingForError) {
+        lookingForError.hidden = hasLookingFor;
       }
-      const parsedPrimary = Number.parseInt(primaryInput.value || "0", 10);
-      const primaryPhotoIndex =
-        Number.isInteger(parsedPrimary) && parsedPrimary >= 0 && parsedPrimary < photos.length
-          ? parsedPrimary
-          : 0;
-      const profiles = readLocalProfiles();
-      profiles[profileKey] = {
-        profileName: String(formData.get("profileName") || "").trim(),
-        location: String(formData.get("location") || "").trim(),
-        bio: String(formData.get("bio") || "").trim(),
-        profession: String(formData.get("profession") || "").trim(),
-        education: String(formData.get("education") || "").trim(),
-        gender: String(formData.get("gender") || "").trim(),
-        heightCm: String(formData.get("heightCm") || "").trim(),
-        weightKg: String(formData.get("weightKg") || "").trim(),
-        religion: String(formData.get("religion") || "").trim(),
-        smoking: String(formData.get("smoking") || "").trim(),
-        drinking: String(formData.get("drinking") || "").trim(),
-        kids: String(formData.get("kids") || "").trim(),
-        kidsCount: String(formData.get("kidsCount") || "").trim(),
-        tribe: String(formData.get("tribe") || "").trim(),
-        tribeOther: String(formData.get("tribeOther") || "").trim(),
-        languages: formData.getAll("languages[]"),
-        lookingFor: formData.getAll("lookingFor[]"),
-        photos,
-        primaryPhotoIndex,
-        completedAt: new Date().toISOString()
-      };
-      writeLocalProfiles(profiles);
-      createProfileExistingPhotos = photos.slice();
-      createProfileExistingPrimaryIndex = primaryPhotoIndex;
+      if (!hasLookingFor) {
+        if (lookingForError) {
+          lookingForError.hidden = false;
+        }
+        return;
+      }
+
+      const fileInput = createProfileForm.querySelector(
+        "[data-profile-photo-input]"
+      );
+      const primaryInput = createProfileForm.querySelector("[data-primary-photo]");
+      if (fileInput && primaryInput) {
+        const profileKey = currentUserEmail || `local-anon-${Date.now()}`;
+        const formData = new FormData(createProfileForm);
+        let photos = [];
+        for (const item of createProfilePhotoItems) {
+          if (!item || !item.src) {
+            continue;
+          }
+          if (item.isExisting) {
+            photos.push(item.src);
+            continue;
+          }
+          if (item.file) {
+            photos.push(await fileToDataUrl(item.file));
+            if (String(item.src).startsWith("blob:")) {
+              URL.revokeObjectURL(item.src);
+            }
+          }
+        }
+        if (!photos.length) {
+          alert("Please add at least one photo.");
+          return;
+        }
+        if (primaryInput.value === "") {
+          primaryInput.value = String(
+            Math.min(createProfileExistingPrimaryIndex, photos.length - 1)
+          );
+        }
+        const parsedPrimary = Number.parseInt(primaryInput.value || "0", 10);
+        const primaryPhotoIndex =
+          Number.isInteger(parsedPrimary) && parsedPrimary >= 0 && parsedPrimary < photos.length
+            ? parsedPrimary
+            : 0;
+        const profiles = readLocalProfiles();
+        profiles[profileKey] = {
+          profileName: String(formData.get("profileName") || "").trim(),
+          location: String(formData.get("location") || "").trim(),
+          bio: String(formData.get("bio") || "").trim(),
+          profession: String(formData.get("profession") || "").trim(),
+          education: String(formData.get("education") || "").trim(),
+          gender: String(formData.get("gender") || "").trim(),
+          heightCm: String(formData.get("heightCm") || "").trim(),
+          weightKg: String(formData.get("weightKg") || "").trim(),
+          religion: String(formData.get("religion") || "").trim(),
+          smoking: String(formData.get("smoking") || "").trim(),
+          drinking: String(formData.get("drinking") || "").trim(),
+          kids: String(formData.get("kids") || "").trim(),
+          kidsCount: String(formData.get("kidsCount") || "").trim(),
+          tribe: String(formData.get("tribe") || "").trim(),
+          tribeOther: String(formData.get("tribeOther") || "").trim(),
+          languages: formData.getAll("languages[]"),
+          lookingFor: formData.getAll("lookingFor[]"),
+          photos,
+          primaryPhotoIndex,
+          completedAt: new Date().toISOString()
+        };
+        const didWriteProfiles = writeLocalProfiles(profiles);
+        if (!didWriteProfiles) {
+          const compactPhotos = [];
+          for (const src of photos) {
+            compactPhotos.push(await compressDataUrlImage(src));
+          }
+          profiles[profileKey].photos = compactPhotos;
+          const didWriteWithCompression = writeLocalProfiles(profiles);
+          if (!didWriteWithCompression) {
+            alert("Unable to save profile because photo storage is full. Delete some photos and try again.");
+            return;
+          }
+          photos = compactPhotos;
+        }
+        createProfileExistingPhotos = photos.slice();
+        createProfileExistingPrimaryIndex = primaryPhotoIndex;
+        createProfilePhotoItems = createProfileExistingPhotos.map((src) => ({
+          src,
+          isExisting: true
+        }));
+      }
+      localStorage.setItem("hasProfile", "true");
+      window.location.replace("dashboard.html");
+    } catch (error) {
+      console.error(error);
+      if (isStorageQuotaError(error)) {
+        alert("Unable to save profile because browser storage is full.");
+        return;
+      }
+      alert("Unable to save profile. Please try again.");
     }
-    localStorage.setItem("hasProfile", "true");
-    window.location.href = "dashboard.html";
   });
 }
 
 const dashboardGrid = document.querySelector("[data-dashboard-grid]");
 if (dashboardGrid) {
   const dashboardEmpty = document.querySelector("[data-dashboard-empty]");
+  const dashboardPagination = document.querySelector("[data-dashboard-pagination]");
+  const dashboardPrev = document.querySelector("[data-dashboard-prev]");
+  const dashboardNext = document.querySelector("[data-dashboard-next]");
+  const dashboardPageNumbers = document.querySelector("[data-dashboard-page-numbers]");
   const likesBadge = document.querySelector("[data-likes-badge]");
+  const viewsBadge = document.querySelector("[data-views-badge]");
   const messagesBadge = document.querySelector("[data-messages-badge]");
   const filterToggle = document.querySelector("[data-filter-toggle]");
   const filterModal = document.querySelector("[data-filter-modal]");
@@ -847,6 +1148,7 @@ if (dashboardGrid) {
   const localUsers = readLocalUsers();
   const localProfiles = readLocalProfiles();
   const localLikes = readLocalLikes();
+  const localViews = readLocalViews();
   const localChatMessages = readLocalChatMessages();
   const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
     .trim()
@@ -864,9 +1166,16 @@ if (dashboardGrid) {
   const receivedLikes = currentUserEmail
     ? localLikes.filter((entry) => entry.to === currentUserEmail)
     : [];
+  const receivedViews = currentUserEmail
+    ? localViews.filter((entry) => entry.to === currentUserEmail)
+    : [];
   if (likesBadge) {
     likesBadge.textContent = String(receivedLikes.length);
     likesBadge.hidden = receivedLikes.length === 0;
+  }
+  if (viewsBadge) {
+    viewsBadge.textContent = String(receivedViews.length);
+    viewsBadge.hidden = receivedViews.length === 0;
   }
   if (currentUserEmail && receivedLikes.length > 0) {
     const seenMap = readLikeSeen();
@@ -882,6 +1191,9 @@ if (dashboardGrid) {
   const currentGender = String(currentUserProfile?.gender || "").toLowerCase();
   const oppositeGender = getOppositeGender(currentGender);
   const used = new Set();
+  const cardsPerPage = 25;
+  let dashboardPage = 0;
+  let dashboardTotalPages = 1;
   let dashboardFilters = readDashboardFilters();
 
   const placeholderSquare = (name) => {
@@ -982,7 +1294,39 @@ if (dashboardGrid) {
       dashboardEmpty.hidden = cards.length > 0;
     }
 
-    cards.forEach((entry) => {
+    dashboardTotalPages = Math.max(1, Math.ceil(cards.length / cardsPerPage));
+    if (dashboardPage > dashboardTotalPages - 1) {
+      dashboardPage = dashboardTotalPages - 1;
+    }
+    const pageStart = dashboardPage * cardsPerPage;
+    const visibleCards = cards.slice(pageStart, pageStart + cardsPerPage);
+
+    if (dashboardPagination && dashboardPrev && dashboardNext) {
+      dashboardPagination.hidden = cards.length <= cardsPerPage;
+      dashboardPrev.disabled = dashboardPage <= 0;
+      dashboardNext.disabled = dashboardPage >= dashboardTotalPages - 1;
+    }
+
+    if (dashboardPageNumbers) {
+      dashboardPageNumbers.innerHTML = "";
+      for (let pageIndex = 0; pageIndex < dashboardTotalPages; pageIndex += 1) {
+        const pageButton = document.createElement("button");
+        pageButton.type = "button";
+        pageButton.className = "button ghost dashboard-page-button";
+        if (pageIndex === dashboardPage) {
+          pageButton.classList.add("is-active");
+        }
+        pageButton.textContent = String(pageIndex + 1);
+        pageButton.setAttribute("aria-label", `Go to page ${pageIndex + 1}`);
+        pageButton.addEventListener("click", () => {
+          dashboardPage = pageIndex;
+          renderDashboardCards();
+        });
+        dashboardPageNumbers.appendChild(pageButton);
+      }
+    }
+
+    visibleCards.forEach((entry) => {
       const tile = document.createElement("article");
       tile.className = "profile-tile";
       const button = document.createElement("button");
@@ -1048,6 +1392,7 @@ if (dashboardGrid) {
         location: filterLocation.value.trim()
       };
       writeDashboardFilters(dashboardFilters);
+      dashboardPage = 0;
       closeFilterModal();
       renderDashboardCards();
     });
@@ -1055,7 +1400,35 @@ if (dashboardGrid) {
       dashboardFilters = {};
       writeDashboardFilters(dashboardFilters);
       syncFilterInputs();
+      dashboardPage = 0;
       closeFilterModal();
+      renderDashboardCards();
+    });
+  }
+  if (currentUserEmail && receivedViews.length > 0) {
+    const seenMap = readViewSeen();
+    const seenCount = Number(seenMap[currentUserEmail] || 0);
+    if (receivedViews.length > seenCount) {
+      const newCount = receivedViews.length - seenCount;
+      alert(`You received ${newCount} new profile view${newCount === 1 ? "" : "s"}!`);
+      seenMap[currentUserEmail] = receivedViews.length;
+      writeViewSeen(seenMap);
+    }
+  }
+
+  if (dashboardPrev && dashboardNext) {
+    dashboardPrev.addEventListener("click", () => {
+      if (dashboardPage <= 0) {
+        return;
+      }
+      dashboardPage -= 1;
+      renderDashboardCards();
+    });
+    dashboardNext.addEventListener("click", () => {
+      if (dashboardPage >= dashboardTotalPages - 1) {
+        return;
+      }
+      dashboardPage += 1;
       renderDashboardCards();
     });
   }
@@ -1063,22 +1436,124 @@ if (dashboardGrid) {
   renderDashboardCards();
 }
 
-const likedGrid = document.querySelector("[data-liked-grid]");
-if (likedGrid) {
-  const likedEmpty = document.querySelector("[data-liked-empty]");
+const viewedGrid = document.querySelector("[data-viewed-grid]");
+if (viewedGrid) {
+  const viewedEmpty = document.querySelector("[data-viewed-empty]");
   const likesBadge = document.querySelector("[data-likes-badge]");
+  const viewsBadge = document.querySelector("[data-views-badge]");
   const localProfiles = readLocalProfiles();
   const localLikes = readLocalLikes();
+  const localViews = readLocalViews();
   const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
   const receivedLikes = currentUserEmail
     ? localLikes.filter((entry) => entry.to === currentUserEmail)
     : [];
+  const receivedViews = currentUserEmail
+    ? localViews.filter((entry) => entry.to === currentUserEmail)
+    : [];
 
   if (likesBadge) {
     likesBadge.textContent = String(receivedLikes.length);
     likesBadge.hidden = receivedLikes.length === 0;
+  }
+  if (viewsBadge) {
+    viewsBadge.textContent = String(receivedViews.length);
+    viewsBadge.hidden = receivedViews.length === 0;
+  }
+
+  if (currentUserEmail) {
+    const seenMap = readViewSeen();
+    seenMap[currentUserEmail] = receivedViews.length;
+    writeViewSeen(seenMap);
+  }
+
+  const latestByViewer = new Map();
+  receivedViews.forEach((entry) => {
+    if (!entry || !entry.from) {
+      return;
+    }
+    const existing = latestByViewer.get(entry.from);
+    if (!existing || String(entry.at || "") > String(existing.at || "")) {
+      latestByViewer.set(entry.from, entry);
+    }
+  });
+
+  const cards = Array.from(latestByViewer.values()).sort((a, b) =>
+    String(b.at || "").localeCompare(String(a.at || ""))
+  );
+
+  const placeholderSquare = (name) => {
+    const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
+    return `<div class="profile-square-fallback">${initial}</div>`;
+  };
+
+  if (!cards.length && viewedEmpty) {
+    viewedEmpty.hidden = false;
+  }
+
+  cards.forEach((entry) => {
+    const record = localProfiles[entry.from] || {};
+    const name = record.profileName || entry.from;
+    const photos = Array.isArray(record.photos) ? record.photos : [];
+    const primaryIndex = Number.isInteger(record.primaryPhotoIndex)
+      ? record.primaryPhotoIndex
+      : 0;
+    const chosenPhoto = photos[primaryIndex] || photos[0] || "";
+
+    const tile = document.createElement("article");
+    tile.className = "profile-tile";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "profile-tile-button";
+    button.setAttribute("aria-label", `View ${name} profile`);
+    button.innerHTML = `
+      <div class="profile-square">
+        ${
+          chosenPhoto
+            ? `<img src="${chosenPhoto}" alt="${name} profile photo" loading="lazy" />`
+            : placeholderSquare(name)
+        }
+      </div>
+      <div class="profile-meta">
+        <strong>${name}</strong>
+        <span>${record.location || "Nigeria"}</span>
+      </div>
+    `;
+    button.addEventListener("click", () => {
+      window.location.href = `view-profile.html?user=${encodeURIComponent(entry.from)}`;
+    });
+    tile.appendChild(button);
+    viewedGrid.appendChild(tile);
+  });
+}
+
+const likedGrid = document.querySelector("[data-liked-grid]");
+if (likedGrid) {
+  const likedEmpty = document.querySelector("[data-liked-empty]");
+  const likesBadge = document.querySelector("[data-likes-badge]");
+  const viewsBadge = document.querySelector("[data-views-badge]");
+  const localProfiles = readLocalProfiles();
+  const localLikes = readLocalLikes();
+  const localViews = readLocalViews();
+  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
+    .trim()
+    .toLowerCase();
+  const receivedLikes = currentUserEmail
+    ? localLikes.filter((entry) => entry.to === currentUserEmail)
+    : [];
+  const receivedViews = currentUserEmail
+    ? localViews.filter((entry) => entry.to === currentUserEmail)
+    : [];
+
+  if (likesBadge) {
+    likesBadge.textContent = String(receivedLikes.length);
+    likesBadge.hidden = receivedLikes.length === 0;
+  }
+  if (viewsBadge) {
+    viewsBadge.textContent = String(receivedViews.length);
+    viewsBadge.hidden = receivedViews.length === 0;
   }
 
   if (currentUserEmail) {
@@ -1427,6 +1902,19 @@ if (profileDetailRoot) {
     detailBio &&
     detailGallery
   ) {
+    const currentViewerEmail = (localStorage.getItem("currentUserEmail") || "")
+      .trim()
+      .toLowerCase();
+    if (currentViewerEmail && key && currentViewerEmail !== key) {
+      const localViews = readLocalViews();
+      localViews.push({
+        from: currentViewerEmail,
+        to: key,
+        at: new Date().toISOString()
+      });
+      writeLocalViews(localViews);
+    }
+
     const photos = Array.isArray(record.photos) ? record.photos : [];
     const primaryIndex = Number.isInteger(record.primaryPhotoIndex)
       ? record.primaryPhotoIndex
@@ -1729,15 +2217,22 @@ const photoInput = document.querySelector("[data-profile-photo-input]");
 const photoPreviews = document.querySelector("[data-photo-previews]");
 const primaryPhoto = document.querySelector("[data-primary-photo]");
 if (photoInput && photoPreviews && primaryPhoto) {
-  const renderPreviews = (sources, selectedIndex = 0) => {
+  const revokePreviewUrl = (item) => {
+    if (!item || item.isExisting || !item.src || !String(item.src).startsWith("blob:")) {
+      return;
+    }
+    URL.revokeObjectURL(item.src);
+  };
+
+  const renderPreviews = (selectedIndex = 0) => {
     photoPreviews.innerHTML = "";
     const safeSelectedIndex =
-      selectedIndex >= 0 && selectedIndex < sources.length ? selectedIndex : 0;
-    sources.forEach((source, index) => {
+      selectedIndex >= 0 && selectedIndex < createProfilePhotoItems.length ? selectedIndex : 0;
+    createProfilePhotoItems.forEach((item, index) => {
       const card = document.createElement("div");
       card.className = "photo-card";
       const img = document.createElement("img");
-      img.src = source.src;
+      img.src = item.src;
       img.alt = `Photo ${index + 1}`;
 
       const label = document.createElement("label");
@@ -1755,49 +2250,75 @@ if (photoInput && photoPreviews && primaryPhoto) {
       label.appendChild(radio);
       label.append(" Profile photo");
 
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "button ghost photo-remove";
+      removeButton.textContent = "Delete";
+      removeButton.addEventListener("click", () => {
+        const nextSelectedIndex =
+          Number.parseInt(primaryPhoto.value || String(safeSelectedIndex), 10) || 0;
+        const [removed] = createProfilePhotoItems.splice(index, 1);
+        revokePreviewUrl(removed);
+        if (!createProfilePhotoItems.length) {
+          primaryPhoto.value = "";
+          renderPreviews(0);
+          return;
+        }
+        const adjustedIndex =
+          index < nextSelectedIndex
+            ? nextSelectedIndex - 1
+            : Math.min(nextSelectedIndex, createProfilePhotoItems.length - 1);
+        renderPreviews(adjustedIndex);
+      });
+
       card.appendChild(img);
       card.appendChild(label);
+      card.appendChild(removeButton);
       photoPreviews.appendChild(card);
     });
+
+    if (!createProfilePhotoItems.length) {
+      primaryPhoto.value = "";
+    }
+    photoInput.required = createProfilePhotoItems.length === 0;
   };
 
   photoInput.addEventListener("change", () => {
     const files = photoInput.files ? Array.from(photoInput.files) : [];
-    if (files.length > 5) {
-      alert("You can select up to 5 photos.");
-      photoInput.value = "";
-      if (createProfileExistingPhotos.length) {
-        renderPreviews(
-          createProfileExistingPhotos.map((src) => ({ src })),
-          createProfileExistingPrimaryIndex
-        );
-      } else {
-        photoPreviews.innerHTML = "";
-        primaryPhoto.value = "";
-      }
-      return;
-    }
     if (!files.length) {
-      if (createProfileExistingPhotos.length) {
-        renderPreviews(
-          createProfileExistingPhotos.map((src) => ({ src })),
-          createProfileExistingPrimaryIndex
-        );
-      } else {
-        photoPreviews.innerHTML = "";
-        primaryPhoto.value = "";
-      }
       return;
     }
-    renderPreviews(files.map((file) => ({ src: URL.createObjectURL(file) })), 0);
+    const remainingSlots = Math.max(0, 5 - createProfilePhotoItems.length);
+    if (remainingSlots <= 0) {
+      alert("You already have 5 photos. Delete one to add another.");
+      photoInput.value = "";
+      return;
+    }
+    if (files.length > remainingSlots) {
+      alert(`You can add ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"}.`);
+      photoInput.value = "";
+      return;
+    }
+    files.forEach((file) => {
+      createProfilePhotoItems.push({
+        src: URL.createObjectURL(file),
+        file,
+        isExisting: false
+      });
+    });
+    const selectedIndex =
+      primaryPhoto.value === "" ? 0 : Number.parseInt(primaryPhoto.value, 10) || 0;
+    renderPreviews(Math.min(selectedIndex, createProfilePhotoItems.length - 1));
+    photoInput.value = "";
   });
 
-  if (createProfileExistingPhotos.length) {
-    renderPreviews(
-      createProfileExistingPhotos.map((src) => ({ src })),
-      createProfileExistingPrimaryIndex
-    );
+  if (!createProfilePhotoItems.length && createProfileExistingPhotos.length) {
+    createProfilePhotoItems = createProfileExistingPhotos.map((src) => ({
+      src,
+      isExisting: true
+    }));
   }
+  renderPreviews(createProfileExistingPrimaryIndex);
 }
 
 const bioField = document.querySelector("#profile-bio");

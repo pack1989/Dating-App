@@ -680,6 +680,12 @@ main {
   color: var(--muted);
 }
 
+.photo-remove {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
 label {
   font-weight: 600;
   letter-spacing: 0.2px;
@@ -866,8 +872,45 @@ select option {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
+}
+
+.dashboard-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dashboard-page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-page-button {
+  min-width: 42px;
+  padding: 9px 12px;
+}
+
+.dashboard-page-button.is-active {
+  background: var(--red);
+  border-color: var(--red);
+  color: #ffffff;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .profile-tile {
