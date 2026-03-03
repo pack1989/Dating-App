@@ -928,7 +928,7 @@ if (dashboardGrid) {
       }
       const record = profile && typeof profile === "object" ? profile : {};
       const candidateGender = String(record.gender || "").toLowerCase();
-      if (!oppositeGender || candidateGender !== oppositeGender) {
+      if (oppositeGender && candidateGender !== oppositeGender) {
         return;
       }
       if (!matchesDashboardFilters(record)) {
@@ -960,7 +960,7 @@ if (dashboardGrid) {
       }
       const profile = localProfiles[user.email];
       const candidateGender = String(profile?.gender || "").toLowerCase();
-      if (!oppositeGender || candidateGender !== oppositeGender) {
+      if (oppositeGender && candidateGender !== oppositeGender) {
         return;
       }
       if (!matchesDashboardFilters(profile || {})) {
@@ -1640,6 +1640,7 @@ if (profileDetailRoot) {
           likeProfileButton.classList.add("is-liked");
           likeProfileButton.textContent = "Liked";
           likeProfileNote.textContent = "Profile liked. They will get an alert.";
+          alert("Like sent successfully.");
         });
       }
     }
