@@ -10,6 +10,92 @@ if (pageName) {
   });
 }
 
+const createProfileFormGuard = document.querySelector("[data-create-profile-form]");
+if (createProfileFormGuard) {
+  // Safety net: never allow native form POST (prevents HTTP 405 on static hosts).
+  createProfileFormGuard.addEventListener("submit", (event) => {
+    event.preventDefault();
+  });
+}
+
+const navRoot = document.querySelector(".site-header .nav");
+
+const getCurrentSessionIdentity = () => {
+  let email = (sessionStorage.getItem("currentUserEmail") || "").trim();
+  let name = (sessionStorage.getItem("currentUserName") || "").trim();
+
+  if (!email && !name) {
+    // Backward-compatible fallback for sessions created before sessionStorage migration.
+    const legacyEmail = (localStorage.getItem("currentUserEmail") || "").trim();
+    const legacyName = (localStorage.getItem("currentUserName") || "").trim();
+    if (legacyEmail || legacyName) {
+      if (legacyEmail) sessionStorage.setItem("currentUserEmail", legacyEmail);
+      if (legacyName) sessionStorage.setItem("currentUserName", legacyName);
+      email = legacyEmail;
+      name = legacyName;
+    }
+  }
+
+  if ((!email || !name) && window.firebaseReady && window.firebaseServices?.auth?.currentUser) {
+    const currentUser = window.firebaseServices.auth.currentUser;
+    const authEmail = String(currentUser.email || "").trim();
+    const authName = String(currentUser.displayName || "").trim();
+    if (!email && authEmail) {
+      sessionStorage.setItem("currentUserEmail", authEmail);
+      email = authEmail;
+    }
+    if (!name && authName) {
+      sessionStorage.setItem("currentUserName", authName);
+      name = authName;
+    }
+  }
+
+  return { email, name };
+};
+
+const renderCurrentUserIndicator = () => {
+  if (!navRoot) return;
+  const { email, name } = getCurrentSessionIdentity();
+  let identity = name;
+  if (!identity && email) {
+    identity = String(email).split("@")[0];
+  }
+  if (!identity) {
+    identity = "Member";
+  }
+  const existing = navRoot.querySelector("[data-current-user-indicator]");
+
+  const indicator = existing || document.createElement("span");
+  indicator.className = "current-user-indicator";
+  indicator.setAttribute("data-current-user-indicator", "");
+  indicator.textContent = `Signed in: ${identity}`;
+
+  if (!existing) {
+    const profileMenuShell = navRoot.querySelector(".profile-menu");
+    if (profileMenuShell) {
+      navRoot.insertBefore(indicator, profileMenuShell);
+    } else {
+      navRoot.appendChild(indicator);
+    }
+  }
+};
+
+try {
+  renderCurrentUserIndicator();
+
+  if (window.firebaseReady && window.firebaseServices?.auth?.onAuthStateChanged) {
+    window.firebaseServices.auth.onAuthStateChanged((user) => {
+      if (user) {
+        if (user.email) sessionStorage.setItem("currentUserEmail", String(user.email));
+        if (user.displayName) sessionStorage.setItem("currentUserName", String(user.displayName));
+      }
+      renderCurrentUserIndicator();
+    });
+  }
+} catch (error) {
+  console.error("Unable to render current user indicator:", error);
+}
+
 const profileMenuToggle = document.querySelector("[data-profile-menu-toggle]");
 const profileMenu = document.querySelector("[data-profile-menu]");
 if (profileMenuToggle && profileMenu) {
@@ -43,7 +129,17 @@ if (profileMenuToggle && profileMenu) {
 
 const logoutButton = document.querySelector("[data-logout-button]");
 if (logoutButton) {
-  logoutButton.addEventListener("click", () => {
+  logoutButton.addEventListener("click", async () => {
+    try {
+      const services = getFirebaseServices();
+      if (services?.auth?.signOut) {
+        await services.auth.signOut();
+      }
+    } catch (error) {
+      console.error("Unable to sign out from Firebase auth:", error);
+    }
+    sessionStorage.removeItem("currentUserEmail");
+    sessionStorage.removeItem("currentUserName");
     localStorage.removeItem("currentUserEmail");
     localStorage.removeItem("currentUserName");
     window.location.href = "signin.html";
@@ -67,6 +163,7 @@ const LOCAL_CHAT_THREADS_KEY = "localChatThreads";
 const LOCAL_CHAT_MESSAGES_KEY = "localChatMessages";
 const LOCAL_MESSAGE_SEEN_KEY = "localMessageSeenByUser";
 const LOCAL_DASH_FILTERS_KEY = "localDashboardFilters";
+const LOCAL_USER_LAST_SIGNIN_KEY = "localUserLastSignInAt";
 const SEEDED_TEST_EMAIL = "test@example.com";
 const SEEDED_TEST_PASSWORD = "Test1234";
 const SEEDED_SAMPLE_BASE = [
@@ -247,6 +344,31 @@ const writeLocalUsers = (users) => {
   localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
 };
 
+const readLocalLastSignIns = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_USER_LAST_SIGNIN_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+};
+
+const writeLocalLastSignIns = (signIns) => {
+  localStorage.setItem(LOCAL_USER_LAST_SIGNIN_KEY, JSON.stringify(signIns));
+};
+
+const markUserSignedIn = (email) => {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key) {
+    return;
+  }
+  const signIns = readLocalLastSignIns();
+  signIns[key] = new Date().toISOString();
+  writeLocalLastSignIns(signIns);
+};
+
 const readLocalProfiles = () => {
   try {
     const raw = localStorage.getItem(LOCAL_PROFILES_KEY);
@@ -385,6 +507,84 @@ const readMessageSeen = () => {
 
 const writeMessageSeen = (seenMap) => {
   localStorage.setItem(LOCAL_MESSAGE_SEEN_KEY, JSON.stringify(seenMap));
+};
+
+const getUniqueIncomingCount = (entries, email) => {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key || !Array.isArray(entries)) return 0;
+  const uniqueSenders = new Set();
+  entries.forEach((entry) => {
+    if (!entry || entry.to !== key || !entry.from) {
+      return;
+    }
+    uniqueSenders.add(String(entry.from).trim().toLowerCase());
+  });
+  return uniqueSenders.size;
+};
+
+const toDayKey = (value) => {
+  const parsed = Date.parse(String(value || ""));
+  if (!Number.isFinite(parsed)) {
+    return "";
+  }
+  return new Date(parsed).toISOString().slice(0, 10);
+};
+
+const getUniqueIncomingCountByDay = (entries, email) => {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key || !Array.isArray(entries)) return 0;
+  const uniquePairs = new Set();
+  entries.forEach((entry) => {
+    if (!entry || entry.to !== key || !entry.from) {
+      return;
+    }
+    const sender = String(entry.from).trim().toLowerCase();
+    const dayKey = toDayKey(entry.at);
+    if (!sender || !dayKey) {
+      return;
+    }
+    uniquePairs.add(`${sender}::${dayKey}`);
+  });
+  return uniquePairs.size;
+};
+
+const formatTimeAgo = (value) => {
+  const then = Date.parse(String(value || ""));
+  if (!Number.isFinite(then)) {
+    return "";
+  }
+  const diffMs = Math.max(0, Date.now() - then);
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+  if (diffMs < hourMs) {
+    const minutes = Math.max(1, Math.floor(diffMs / minuteMs));
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+  if (diffMs < dayMs) {
+    const hours = Math.floor(diffMs / hourMs);
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+  const days = Math.floor(diffMs / dayMs);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+};
+
+const getUnreadLikesCount = (email, likes = null, seenMap = null) => {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key) return 0;
+  const allLikes = Array.isArray(likes) ? likes : readLocalLikes();
+  const likedToUser = getUniqueIncomingCount(allLikes, key);
+  const seen = Number((seenMap || readLikeSeen())[key] || 0);
+  return Math.max(0, likedToUser - seen);
+};
+
+const getUnreadViewsCount = (email, views = null, seenMap = null) => {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key) return 0;
+  const allViews = Array.isArray(views) ? views : readLocalViews();
+  const viewedToUser = getUniqueIncomingCountByDay(allViews, key);
+  const seen = Number((seenMap || readViewSeen())[key] || 0);
+  return Math.max(0, viewedToUser - seen);
 };
 
 const readDashboardFilters = () => {
@@ -749,34 +949,40 @@ if (signinForm) {
           note.classList.add("form-error");
           return;
         }
-        localStorage.setItem("currentUserEmail", user.email || "");
-        localStorage.setItem(
-          "currentUserName",
+        sessionStorage.setItem("currentUserEmail", user.email || "");
+        sessionStorage.setItem("currentUserName",
           `${user.firstName || ""} ${user.lastName || ""}`.trim()
         );
+        markUserSignedIn(user.email);
         const profiles = readLocalProfiles();
-        const hasProfile =
-          Boolean(profiles[email]) || localStorage.getItem("hasProfile") === "true";
+        const hasProfile = Boolean(profiles[email]);
         window.location.href = hasProfile
           ? "dashboard.html"
           : "create-profile.html";
         return;
       }
 
+      if (window.firebase?.auth?.Auth?.Persistence?.SESSION && services.auth?.setPersistence) {
+        await services.auth.setPersistence(window.firebase.auth.Auth.Persistence.SESSION);
+      }
       const credential = await services.auth.signInWithEmailAndPassword(
         emailField.value.trim().toLowerCase(),
         passwordField.value
       );
 
       if (credential.user) {
-        localStorage.setItem("currentUserEmail", credential.user.email || "");
-        localStorage.setItem(
-          "currentUserName",
+        sessionStorage.setItem("currentUserEmail", credential.user.email || "");
+        sessionStorage.setItem("currentUserName",
           credential.user.displayName || ""
         );
+        markUserSignedIn(credential.user.email || "");
       }
 
-      const hasProfile = localStorage.getItem("hasProfile") === "true";
+      const signedInEmail = String(credential?.user?.email || "")
+        .trim()
+        .toLowerCase();
+      const profiles = readLocalProfiles();
+      const hasProfile = Boolean(signedInEmail && profiles[signedInEmail]);
       window.location.href = hasProfile ? "dashboard.html" : "create-profile.html";
     } catch (error) {
       note.textContent = toAuthMessage(error, "Unable to login.");
@@ -808,7 +1014,7 @@ if (createProfileForm) {
   const lookingForError = createProfileForm.querySelector("[data-looking-for-error]");
   const languageSelections = new Map();
   const lookingForSelections = new Map();
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
+  const currentUserEmail = (sessionStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
   const allProfiles = readLocalProfiles();
@@ -816,6 +1022,25 @@ if (createProfileForm) {
     currentUserEmail && allProfiles[currentUserEmail]
       ? allProfiles[currentUserEmail]
       : null;
+  const createProfileStatus = document.createElement("p");
+  createProfileStatus.className = "form-note";
+  createProfileStatus.setAttribute("data-create-profile-status", "");
+  createProfileStatus.hidden = true;
+  const createProfileHeading = createProfileForm.querySelector("h1");
+  if (createProfileHeading && createProfileHeading.nextSibling) {
+    createProfileForm.insertBefore(createProfileStatus, createProfileHeading.nextSibling);
+  } else if (createProfileHeading) {
+    createProfileForm.appendChild(createProfileStatus);
+  }
+
+  const showCreateProfileStatus = (message, isError = false) => {
+    if (!createProfileStatus) {
+      return;
+    }
+    createProfileStatus.textContent = message || "";
+    createProfileStatus.classList.toggle("form-error", Boolean(isError));
+    createProfileStatus.hidden = !message;
+  };
 
   const getOptionLabel = (select, value) => {
     if (!select) {
@@ -1057,7 +1282,7 @@ if (createProfileForm) {
           }
         }
         if (!photos.length) {
-          alert("Please add at least one photo.");
+          showCreateProfileStatus("Please add at least one photo.", true);
           return;
         }
         if (primaryInput.value === "") {
@@ -1102,7 +1327,10 @@ if (createProfileForm) {
           profiles[profileKey].photos = compactPhotos;
           const didWriteWithCompression = writeLocalProfiles(profiles);
           if (!didWriteWithCompression) {
-            alert("Unable to save profile because photo storage is full. Delete some photos and try again.");
+            showCreateProfileStatus(
+              "Unable to save profile because photo storage is full. Delete some photos and try again.",
+              true
+            );
             return;
           }
           photos = compactPhotos;
@@ -1114,15 +1342,14 @@ if (createProfileForm) {
           isExisting: true
         }));
       }
-      localStorage.setItem("hasProfile", "true");
       window.location.replace("dashboard.html");
     } catch (error) {
       console.error(error);
       if (isStorageQuotaError(error)) {
-        alert("Unable to save profile because browser storage is full.");
+        showCreateProfileStatus("Unable to save profile because browser storage is full.", true);
         return;
       }
-      alert("Unable to save profile. Please try again.");
+      showCreateProfileStatus("Unable to save profile. Please try again.", true);
     }
   });
 }
@@ -1146,13 +1373,26 @@ if (dashboardGrid) {
   const filterReset = document.querySelector("[data-filter-reset]");
   const filterClose = document.querySelector("[data-filter-close]");
   const localUsers = readLocalUsers();
+  const localUserByEmail = new Map(
+    localUsers
+      .filter((entry) => entry && entry.email)
+      .map((entry) => [String(entry.email).trim().toLowerCase(), entry])
+  );
+  const localLastSignIns = readLocalLastSignIns();
   const localProfiles = readLocalProfiles();
   const localLikes = readLocalLikes();
   const localViews = readLocalViews();
   const localChatMessages = readLocalChatMessages();
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
+  const currentUserEmail = (sessionStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
+  if (!currentUserEmail) {
+    window.location.replace("signin.html");
+  }
+  const currentUserProfile = currentUserEmail ? localProfiles[currentUserEmail] : null;
+  if (currentUserEmail && !currentUserProfile) {
+    window.location.replace("create-profile.html");
+  }
   const messageCount = currentUserEmail
     ? localChatMessages.filter((entry) => entry && entry.to === currentUserEmail).length
     : 0;
@@ -1169,25 +1409,18 @@ if (dashboardGrid) {
   const receivedViews = currentUserEmail
     ? localViews.filter((entry) => entry.to === currentUserEmail)
     : [];
+  const likeSeenMap = readLikeSeen();
+  const unreadLikeCount = getUnreadLikesCount(currentUserEmail, localLikes, likeSeenMap);
+  const viewSeenMap = readViewSeen();
+  const unreadViewCount = getUnreadViewsCount(currentUserEmail, localViews, viewSeenMap);
   if (likesBadge) {
-    likesBadge.textContent = String(receivedLikes.length);
-    likesBadge.hidden = receivedLikes.length === 0;
+    likesBadge.textContent = String(unreadLikeCount);
+    likesBadge.hidden = unreadLikeCount === 0;
   }
   if (viewsBadge) {
-    viewsBadge.textContent = String(receivedViews.length);
-    viewsBadge.hidden = receivedViews.length === 0;
+    viewsBadge.textContent = String(unreadViewCount);
+    viewsBadge.hidden = unreadViewCount === 0;
   }
-  if (currentUserEmail && receivedLikes.length > 0) {
-    const seenMap = readLikeSeen();
-    const seenCount = Number(seenMap[currentUserEmail] || 0);
-    if (receivedLikes.length > seenCount) {
-      const newCount = receivedLikes.length - seenCount;
-      alert(`You received ${newCount} new like${newCount === 1 ? "" : "s"}!`);
-      seenMap[currentUserEmail] = receivedLikes.length;
-      writeLikeSeen(seenMap);
-    }
-  }
-  const currentUserProfile = currentUserEmail ? localProfiles[currentUserEmail] : null;
   const currentGender = String(currentUserProfile?.gender || "").toLowerCase();
   const oppositeGender = getOppositeGender(currentGender);
   const used = new Set();
@@ -1195,6 +1428,21 @@ if (dashboardGrid) {
   let dashboardPage = 0;
   let dashboardTotalPages = 1;
   let dashboardFilters = readDashboardFilters();
+
+  const toEpochMs = (value) => {
+    const parsed = Date.parse(String(value || ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getRecencyRank = (email, profile) => {
+    const key = String(email || "").trim().toLowerCase();
+    const user = localUserByEmail.get(key);
+    return Math.max(
+      toEpochMs(localLastSignIns[key]),
+      toEpochMs(profile?.completedAt),
+      toEpochMs(user?.createdAt)
+    );
+  };
 
   const placeholderSquare = (name) => {
     const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
@@ -1256,7 +1504,8 @@ if (dashboardGrid) {
         key: email,
         name,
         location: record.location || "",
-        photo: chosenPhoto
+        photo: chosenPhoto,
+        recencyRank: getRecencyRank(email, record)
       });
       used.add(email);
     });
@@ -1286,8 +1535,17 @@ if (dashboardGrid) {
         key: user.email,
         name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
         location: profile?.location || "",
-        photo: photos[primaryIndex] || photos[0] || ""
+        photo: photos[primaryIndex] || photos[0] || "",
+        recencyRank: getRecencyRank(user.email, profile || {})
       });
+    });
+
+    cards.sort((a, b) => {
+      const rankDelta = Number(b.recencyRank || 0) - Number(a.recencyRank || 0);
+      if (rankDelta !== 0) {
+        return rankDelta;
+      }
+      return String(a.name || "").localeCompare(String(b.name || ""));
     });
 
     if (dashboardEmpty) {
@@ -1405,17 +1663,6 @@ if (dashboardGrid) {
       renderDashboardCards();
     });
   }
-  if (currentUserEmail && receivedViews.length > 0) {
-    const seenMap = readViewSeen();
-    const seenCount = Number(seenMap[currentUserEmail] || 0);
-    if (receivedViews.length > seenCount) {
-      const newCount = receivedViews.length - seenCount;
-      alert(`You received ${newCount} new profile view${newCount === 1 ? "" : "s"}!`);
-      seenMap[currentUserEmail] = receivedViews.length;
-      writeViewSeen(seenMap);
-    }
-  }
-
   if (dashboardPrev && dashboardNext) {
     dashboardPrev.addEventListener("click", () => {
       if (dashboardPage <= 0) {
@@ -1444,7 +1691,7 @@ if (viewedGrid) {
   const localProfiles = readLocalProfiles();
   const localLikes = readLocalLikes();
   const localViews = readLocalViews();
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
+  const currentUserEmail = (sessionStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
   const receivedLikes = currentUserEmail
@@ -1453,20 +1700,21 @@ if (viewedGrid) {
   const receivedViews = currentUserEmail
     ? localViews.filter((entry) => entry.to === currentUserEmail)
     : [];
-
-  if (likesBadge) {
-    likesBadge.textContent = String(receivedLikes.length);
-    likesBadge.hidden = receivedLikes.length === 0;
-  }
-  if (viewsBadge) {
-    viewsBadge.textContent = String(receivedViews.length);
-    viewsBadge.hidden = receivedViews.length === 0;
-  }
-
   if (currentUserEmail) {
     const seenMap = readViewSeen();
-    seenMap[currentUserEmail] = receivedViews.length;
+    seenMap[currentUserEmail] = getUniqueIncomingCountByDay(receivedViews, currentUserEmail);
     writeViewSeen(seenMap);
+  }
+  const unreadLikes = getUnreadLikesCount(currentUserEmail, localLikes, readLikeSeen());
+  const unreadViews = 0;
+
+  if (likesBadge) {
+    likesBadge.textContent = String(unreadLikes);
+    likesBadge.hidden = unreadLikes === 0;
+  }
+  if (viewsBadge) {
+    viewsBadge.textContent = String(unreadViews);
+    viewsBadge.hidden = true;
   }
 
   const latestByViewer = new Map();
@@ -1519,6 +1767,7 @@ if (viewedGrid) {
       <div class="profile-meta">
         <strong>${name}</strong>
         <span>${record.location || "Nigeria"}</span>
+        <span>${formatTimeAgo(entry.at) || "Recently"}</span>
       </div>
     `;
     button.addEventListener("click", () => {
@@ -1537,7 +1786,7 @@ if (likedGrid) {
   const localProfiles = readLocalProfiles();
   const localLikes = readLocalLikes();
   const localViews = readLocalViews();
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
+  const currentUserEmail = (sessionStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
   const receivedLikes = currentUserEmail
@@ -1546,20 +1795,21 @@ if (likedGrid) {
   const receivedViews = currentUserEmail
     ? localViews.filter((entry) => entry.to === currentUserEmail)
     : [];
-
-  if (likesBadge) {
-    likesBadge.textContent = String(receivedLikes.length);
-    likesBadge.hidden = receivedLikes.length === 0;
-  }
-  if (viewsBadge) {
-    viewsBadge.textContent = String(receivedViews.length);
-    viewsBadge.hidden = receivedViews.length === 0;
-  }
-
   if (currentUserEmail) {
     const seenMap = readLikeSeen();
-    seenMap[currentUserEmail] = receivedLikes.length;
+    seenMap[currentUserEmail] = getUniqueIncomingCount(receivedLikes, currentUserEmail);
     writeLikeSeen(seenMap);
+  }
+  const unreadLikes = 0;
+  const unreadViews = getUnreadViewsCount(currentUserEmail, localViews, readViewSeen());
+
+  if (likesBadge) {
+    likesBadge.textContent = String(unreadLikes);
+    likesBadge.hidden = true;
+  }
+  if (viewsBadge) {
+    viewsBadge.textContent = String(unreadViews);
+    viewsBadge.hidden = unreadViews === 0;
   }
 
   const latestBySender = new Map();
@@ -1612,6 +1862,7 @@ if (likedGrid) {
       <div class="profile-meta">
         <strong>${name}</strong>
         <span>${record.location || "Nigeria"}</span>
+        <span>${formatTimeAgo(entry.at) || "Recently"}</span>
       </div>
     `;
     button.addEventListener("click", () => {
@@ -1632,7 +1883,7 @@ if (chatsApp) {
   const composeInput = document.querySelector("[data-chat-compose-input]");
   const messagesBadge = document.querySelector("[data-messages-badge]");
   const likesBadge = document.querySelector("[data-likes-badge]");
-  const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
+  const currentUserEmail = (sessionStorage.getItem("currentUserEmail") || "")
     .trim()
     .toLowerCase();
   const profiles = readLocalProfiles();
@@ -1645,9 +1896,9 @@ if (chatsApp) {
   };
 
   if (likesBadge && currentUserEmail) {
-    const receivedLikes = likes.filter((entry) => entry.to === currentUserEmail);
-    likesBadge.textContent = String(receivedLikes.length);
-    likesBadge.hidden = receivedLikes.length === 0;
+    const unreadLikes = getUnreadLikesCount(currentUserEmail, likes, readLikeSeen());
+    likesBadge.textContent = String(unreadLikes);
+    likesBadge.hidden = unreadLikes === 0;
   }
 
   if (!currentUserEmail || !threadList || !messageList || !composeForm || !composeInput) {
@@ -1661,7 +1912,7 @@ if (chatsApp) {
   } else {
     let threads = readLocalChatThreads();
     let messages = readLocalChatMessages();
-    const pendingRecipient = (localStorage.getItem("pendingChatRecipientKey") || "")
+    const pendingRecipient = (sessionStorage.getItem("pendingChatRecipientKey") || "")
       .trim()
       .toLowerCase();
 
@@ -1723,8 +1974,8 @@ if (chatsApp) {
     if (!activeThreadId && currentThreads.length) {
       activeThreadId = currentThreads[0].id;
     }
-    localStorage.removeItem("pendingChatRecipientKey");
-    localStorage.removeItem("pendingChatRecipientName");
+    sessionStorage.removeItem("pendingChatRecipientKey");
+    sessionStorage.removeItem("pendingChatRecipientName");
 
     const renderMessages = () => {
       messageList.innerHTML = "";
@@ -1902,7 +2153,7 @@ if (profileDetailRoot) {
     detailBio &&
     detailGallery
   ) {
-    const currentViewerEmail = (localStorage.getItem("currentUserEmail") || "")
+    const currentViewerEmail = (sessionStorage.getItem("currentUserEmail") || "")
       .trim()
       .toLowerCase();
     if (currentViewerEmail && key && currentViewerEmail !== key) {
@@ -2025,7 +2276,7 @@ if (profileDetailRoot) {
 
     if (messageModalSend && messageModalText) {
       messageModalSend.addEventListener("click", () => {
-        const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
+        const currentUserEmail = (sessionStorage.getItem("currentUserEmail") || "")
           .trim()
           .toLowerCase();
         const text = messageModalText.value.trim();
@@ -2075,8 +2326,8 @@ if (profileDetailRoot) {
         });
         writeLocalChatMessages(messages);
 
-        localStorage.setItem("pendingChatRecipientKey", key);
-        localStorage.setItem("pendingChatRecipientName", display(record.profileName));
+        sessionStorage.setItem("pendingChatRecipientKey", key);
+        sessionStorage.setItem("pendingChatRecipientName", display(record.profileName));
         closeMessageModal();
         window.location.href = "chats.html";
       });
@@ -2088,7 +2339,7 @@ if (profileDetailRoot) {
       }
     });
     if (likeProfileButton && likeProfileNote) {
-      const currentUserEmail = (localStorage.getItem("currentUserEmail") || "")
+      const currentUserEmail = (sessionStorage.getItem("currentUserEmail") || "")
         .trim()
         .toLowerCase();
       const isOwnProfile = currentUserEmail && currentUserEmail === key;
@@ -2128,7 +2379,6 @@ if (profileDetailRoot) {
           likeProfileButton.classList.add("is-liked");
           likeProfileButton.textContent = "Liked";
           likeProfileNote.textContent = "Profile liked. They will get an alert.";
-          alert("Like sent successfully.");
         });
       }
     }
@@ -2290,12 +2540,15 @@ if (photoInput && photoPreviews && primaryPhoto) {
     }
     const remainingSlots = Math.max(0, 5 - createProfilePhotoItems.length);
     if (remainingSlots <= 0) {
-      alert("You already have 5 photos. Delete one to add another.");
+      showCreateProfileStatus("You already have 5 photos. Delete one to add another.", true);
       photoInput.value = "";
       return;
     }
     if (files.length > remainingSlots) {
-      alert(`You can add ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"}.`);
+      showCreateProfileStatus(
+        `You can add ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"}.`,
+        true
+      );
       photoInput.value = "";
       return;
     }

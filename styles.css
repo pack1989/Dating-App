@@ -125,6 +125,17 @@ main {
   gap: 18px;
 }
 
+.current-user-indicator {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 45, 45, 0.45);
+  background: rgba(255, 45, 45, 0.12);
+  color: var(--text);
+  font-size: 12px;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  white-space: nowrap;
+}
+
 .nav a {
   text-decoration: none;
   font-weight: 600;
@@ -840,6 +851,12 @@ select option {
 
   .nav {
     flex-wrap: wrap;
+  }
+
+  .current-user-indicator {
+    order: 99;
+    white-space: normal;
+    word-break: break-word;
   }
 
   .hero {
